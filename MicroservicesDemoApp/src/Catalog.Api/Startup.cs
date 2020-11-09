@@ -1,14 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Catalog.Api.Data;
+using Catalog.Api.Data.Interfaces;
+using Catalog.Api.Repositories;
+using Catalog.Api.Repositories.Interfaces;
+using Catalog.Api.Settings;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 
 namespace Catalog.Api
 {
@@ -25,6 +26,20 @@ namespace Catalog.Api
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+
+            services.Configure<CatalogDbSettings>(Configuration.GetSection(nameof(CatalogDbSettings)));
+
+            services.AddSingleton<ICatalogDbSettings>(imp =>
+                imp.GetRequiredService<IOptions<CatalogDbSettings>>().Value
+            );
+
+            services.AddTransient<ICatalogContext, CatalogContext>();
+            services.AddTransient<IProductRepository, ProductRepository>();
+
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Catalog API", Version = "v1" });
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -42,6 +57,12 @@ namespace Catalog.Api
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+            });
+
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Catalog API v1");
             });
         }
     }
