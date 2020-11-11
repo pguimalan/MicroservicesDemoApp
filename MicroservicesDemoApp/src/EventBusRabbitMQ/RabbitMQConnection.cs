@@ -1,6 +1,8 @@
 ﻿using EventBusRabbitMQ.Interfaces;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Exceptions;
 using System;
+using System.IO;
 using System.Threading;
 
 namespace EventBusRabbitMQ
@@ -13,8 +15,7 @@ namespace EventBusRabbitMQ
 
         public RabbitMQConnection(IConnectionFactory connectionFactory)
         {
-            _connectionFactory = connectionFactory;
-
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             if (!IsConnected)
             {
                 TryConnect();
@@ -35,40 +36,46 @@ namespace EventBusRabbitMQ
             {
                 _connection = _connectionFactory.CreateConnection();
             }
-            catch// (BrokerUnreachableException ex)
+            catch (BrokerUnreachableException)
             {
                 Thread.Sleep(2000);
                 _connection = _connectionFactory.CreateConnection();
             }
 
             if (IsConnected)
+            {
+                Console.WriteLine($"RabbitMQ persistent connection acquired a connection {_connection.Endpoint.HostName} and is subscribed to failure events");
                 return true;
-            else 
+            }
+            else
+            {
+                Console.WriteLine("FATAL ERROR: RabbitMQ connections could not be created and opened");
                 return false;
+            }
         }
 
         public IModel CreateModel()
         {
             if (!IsConnected)
-                throw new InvalidOperationException("Cannot connect to RabbitMQ Server.");
-
+            {
+                throw new InvalidOperationException("No RabbitMQ connections are available to perform this action");
+            }
             return _connection.CreateModel();
         }
 
         public void Dispose()
         {
-            if (_disposed)
-            {
-                return;
-            }
+            if (_disposed) return;
+
+            _disposed = true;
 
             try
             {
                 _connection.Dispose();
             }
-            catch
+            catch (IOException ex)
             {
-                throw;
+                Console.WriteLine(ex.ToString());
             }
         }
     }

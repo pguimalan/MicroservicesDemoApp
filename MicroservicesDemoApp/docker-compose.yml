@@ -21,3 +21,9 @@ services:
         build:
           context: .
           dockerfile: src/Basket.Api/Dockerfile
+  ordering.api:
+    image: ${DOCKER_REGISTRY-}orderingapi
+    build:
+      context: .
+      dockerfile: src/Ordering.Api/Dockerfile
+
