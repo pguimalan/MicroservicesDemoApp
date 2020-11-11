@@ -4,16 +4,24 @@ services:
     catalogdb:
         container_name: catalogdb
         restart: always
+        volumes:
+            - ${WEBAPP_STORAGE_HOME}/site:/data/db
         ports:
             - "27017:27017"
 
     basketdb:
         container_name: basketdb
-        restart: always
-        volumes:
-            - ${WEBAPP_STORAGE_HOME}/site:/data/db
+        restart: always       
         ports:
             - "6379:6379"
+
+    orderdb:
+        container_name: orderdb
+        ports:
+            - "1433:1433"
+        environment:
+            SA_PASSWORD: "pisseD123"
+            ACCEPT_EULA: "Y"
 
     rabbitmq:
         container_name: rabbitmq
@@ -49,9 +57,31 @@ services:
             - ${HOME}/.aspnet/https:/root/.aspnet/https/
         ports:
             - "8001:80"
-  ordering.api:
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-    ports:
-      - "80"
+    ordering.api:
+        container_name: orderingapi
+        restart: on-failure
+        environment:
+            - ASPNETCORE_ENVIRONMENT=Development
+            - "ConnectionStrings:OrderDbConnectionString=Server=orderdb;Database=OrderDb;User Id=sa;Password=pisseD123"
+            - "EventBus:HostName=rabbitmq"
+        depends_on:
+            - orderdb
+            - rabbitmq
+        ports:
+            - "8002:80"
+
+
+    appgateway:
+        container_name: appgateway
+        environment:
+            - ASPNETCORE_ENVIRONMENT=Development
+        depends_on:
+            - catalog.api
+            - basket.api
+            - ordering.api
+        volumes:
+            - ${HOME}/.microsoft/usersecrets/:/root/.microsoft/usersecrets
+            - ${HOME}/.aspnet/https:/root/.aspnet/https/
+        ports:
+            - "7000:80"
 

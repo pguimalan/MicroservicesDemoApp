@@ -3,13 +3,13 @@ version: '3.4'
 services:
     catalogdb:
         image: mongo
-    
     basketdb:
         image: redis
+    orderdb:
+        image: mcr.microsoft.com/mssql/server
 
     rabbitmq:
-        image: rabbitmq:3-management-alpine
-    
+        image: rabbitmq:3-management-alpine    
 
     catalog.api:
         image: ${DOCKER_REGISTRY-}catalogapi
@@ -21,9 +21,14 @@ services:
         build:
           context: .
           dockerfile: src/Basket.Api/Dockerfile
-  ordering.api:
-    image: ${DOCKER_REGISTRY-}orderingapi
-    build:
-      context: .
-      dockerfile: src/Ordering.Api/Dockerfile
+    ordering.api:
+        image: ${DOCKER_REGISTRY-}orderingapi
+        build:
+            context: .
+            dockerfile: src/Ordering.Api/Dockerfile
+    appgateway:
+        image: ${DOCKER_REGISTRY-}appgateway
+        build:
+            context: .
+            dockerfile: src/AppGateway/Dockerfile
 
